@@ -1,0 +1,1698 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>실시간 랭킹 & 게시판 & 청운우체통</title>
+  <style>
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: radial-gradient(circle at top, #e0f2fe 0%, #f9fafb 45%, #ffffff 100%);
+    color: #0f172a;
+  }
+
+  /* 상단 헤더 */
+
+  header {
+    padding: 12px 24px 16px;
+    border-bottom: 1px solid #dbeafe;
+    background: rgba(255,255,255,0.95);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    backdrop-filter: blur(10px);
+  }
+
+  .logo {
+    padding: 8px 18px;
+    border-radius: 999px;
+    background: linear-gradient(to right, #3b82f6, #38bdf8);
+    color: #f9fafb;
+    font-weight: 800;
+    font-size: 20px;
+    box-shadow: 0 4px 10px rgba(37,99,235,0.4);
+  }
+
+  .subtitle {
+    font-size: 12px;
+    color: #4b5563;
+    margin-top: 4px;
+  }
+
+  /* 상단 탭 */
+
+  .nav-tabs {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .nav-btn {
+    font-size: 12px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    border: 1px solid #bfdbfe;
+    background: #eff6ff;
+    color: #1d4ed8;
+    cursor: pointer;
+    white-space: nowrap;
+    box-shadow: 0 2px 0 rgba(148,163,184,0.6);
+    transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.08s ease;
+  }
+
+  .nav-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(148,163,184,0.6);
+  }
+
+  .nav-btn.active {
+    border-color: #2563eb;
+    background: linear-gradient(to right, #bfdbfe, #dbeafe);
+    color: #1f2937;
+  }
+
+  /* 메인 레이아웃 */
+
+  main {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 16px;
+  }
+
+  .vote-layout {
+    display: grid;
+    grid-template-columns: 260px 1fr 260px;
+    gap: 16px;
+  }
+
+  @media (max-width: 900px) {
+    .vote-layout {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* 공통 카드 / 패널 */
+
+  .panel {
+    background: #ffffff;
+    border-radius: 18px;
+    border: 1px solid #dbeafe;
+    padding: 12px 12px 16px;
+    font-size: 14px;
+    box-shadow: 0 12px 25px rgba(15,23,42,0.07);
+  }
+
+  .panel-title {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: #1d4ed8;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .panel-title::before {
+    content: "🌸";
+    font-size: 13px;
+  }
+
+  /* 투표 질문 목록 */
+
+  .question-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 360px;
+    overflow-y: auto;
+  }
+
+  .question-item {
+    border-radius: 12px;
+    padding: 8px 10px;
+    border: 1px solid #e5e7eb;
+    background: #f3f4ff;
+    cursor: pointer;
+    font-size: 13px;
+    line-height: 1.4;
+    transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.08s ease, border-color 0.08s ease;
+  }
+
+  .question-item small {
+    display: block;
+    color: #6b7280;
+    font-size: 11px;
+    margin-top: 2px;
+  }
+
+  .question-item:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(148,163,184,0.4);
+    border-color: #bfdbfe;
+  }
+
+  .question-item.active {
+    border-color: #2563eb;
+    background: linear-gradient(to right, #e0f2fe, #eff6ff);
+  }
+
+  /* 중앙 카드 (투표 질문) */
+
+  .card {
+    background: #ffffff;
+    border-radius: 22px;
+    border: 1px solid #dbeafe;
+    padding: 20px 18px 18px;
+    min-height: 260px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 0 16px 30px rgba(15,23,42,0.08);
+  }
+
+  .card-tag {
+    font-size: 11px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    border: 1px solid #bfdbfe;
+    display: inline-block;
+    margin-bottom: 6px;
+    color: #1d4ed8;
+    background: #eff6ff;
+  }
+
+  .card-title {
+    font-size: 22px;
+    font-weight: 800;
+    margin-bottom: 6px;
+    color: #0f172a;
+  }
+
+  .card-desc {
+    font-size: 13px;
+    color: #4b5563;
+    margin-bottom: 16px;
+  }
+
+  .card-meta {
+    font-size: 12px;
+    color: #6b7280;
+    margin-bottom: 6px;
+  }
+
+  .vote-form {
+    margin-top: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .vote-form input {
+    flex: 1;
+    min-width: 160px;
+    padding: 8px 10px;
+    border-radius: 999px;
+    border: 1px solid #cbd5f5;
+    background: #ffffff;
+    color: #0f172a;
+    font-size: 13px;
+  }
+
+  .vote-form input:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 2px rgba(37,99,235,0.15);
+  }
+
+  .vote-form button {
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: none;
+    background: linear-gradient(to right, #3b82f6, #f2fff7);
+    color: #f9fafb;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    box-shadow: 0 4px 10px rgba(169, 248, 255, 0.45);
+    transition: transform 0.08s ease, box-shadow 0.08s ease;
+  }
+
+  .vote-form button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 14px rgba(145, 222, 255, 0.6);
+  }
+
+  /* 이전 질문 버튼 (같은 스타일 재사용) */
+
+  .next-question-btn {
+    margin-top: 10px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid #bfdbfe;
+    background: #eff6ff;
+    color: #1d4ed8;
+    font-size: 12px;
+    cursor: pointer;
+    align-self: flex-end;
+    box-shadow: 0 2px 4px rgba(148,163,184,0.5);
+    transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.08s ease;
+  }
+
+  .next-question-btn:hover {
+    background: #e0f2fe;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(148,163,184,0.7);
+  }
+
+  /* 랭킹 영역 */
+
+  .ranking-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 4px;
+  }
+
+  .ranking-sub {
+    font-size: 11px;
+    color: #6b7280;
+  }
+
+  .ranking-list {
+    margin-top: 6px;
+    font-size: 13px;
+  }
+
+  .rank-item {
+    padding: 6px 8px;
+    border-radius: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid #e5e7eb;
+    background: #f1f5f9;
+    margin-bottom: 4px;
+  }
+
+  .rank-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .rank-num {
+    font-size: 12px;
+    border-radius: 999px;
+    padding: 2px 7px;
+    border: 1px solid #bfdbfe;
+    color: #1d4ed8;
+    background: #eff6ff;
+  }
+
+  .rank-name {
+    font-size: 13px;
+    color: #111827;
+  }
+
+  .rank-votes {
+    font-size: 12px;
+    color: #16a34a;
+    font-weight: 600;
+  }
+
+  .empty-text {
+    font-size: 12px;
+    color: #9ca3af;
+    margin-top: 6px;
+  }
+
+  /* 관리자 */
+
+  .admin-toggle {
+    font-size: 11px;
+    color: #64748b;
+    text-align: right;
+    margin-top: 8px;
+    cursor: pointer;
+  }
+
+  .admin-section {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed #e5e7eb;
+    font-size: 12px;
+    display: none;
+    gap: 8px;
+    flex-direction: column;
+  }
+
+  .admin-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .admin-section input {
+    padding: 6px 8px;
+    border-radius: 8px;
+    border: 1px solid #cbd5f5;
+    background: #ffffff;
+    color: #0f172a;
+    font-size: 12px;
+  }
+
+  .admin-section input:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 2px rgba(37,99,235,0.15);
+  }
+
+  .admin-btn {
+    font-size: 11px;
+    border-radius: 999px;
+    border: 1px solid #bfdbfe;
+    background: #eff6ff;
+    color: #1d4ed8;
+    cursor: pointer;
+    padding: 4px 8px;
+    white-space: nowrap;
+    transition: background 0.08s ease;
+  }
+
+  .admin-btn:hover {
+    background: #e0f2fe;
+  }
+
+  .admin-btn.danger {
+    border-color: #fecaca;
+    background: #fef2f2;
+    color: #b91c1c;
+  }
+
+  /* 게시판 / 청운우체통 공통 */
+
+  .letter-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .letter-title {
+    font-size: 18px;
+    font-weight: 800;
+    margin-bottom: 4px;
+    color: #1d4ed8;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .letter-sub {
+    font-size: 12px;
+    color: #4b5563;
+    margin-bottom: 10px;
+  }
+
+  .letter-form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 13px;
+  }
+
+  .letter-form-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .letter-form input[type="text"],
+  .letter-form textarea {
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: 12px;
+    border: 1px solid #cbd5f5;
+    background: #ffffff;
+    color: #0f172a;
+    font-size: 13px;
+    resize: vertical;
+  }
+
+  .letter-form textarea {
+    min-height: 80px;
+  }
+
+  .letter-form input[type="file"] {
+    font-size: 12px;
+    color: #374151;
+  }
+
+  .letter-form button {
+    align-self: flex-end;
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: none;
+    background: linear-gradient(to right, #3b82f6, #6366f1);
+    color: #f9fafb;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(79,70,229,0.6);
+    transition: transform 0.08s ease, box-shadow 0.08s ease;
+  }
+
+  .letter-form button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 14px rgba(79,70,229,0.75);
+  }
+
+  .letter-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    font-size: 13px;
+    max-height: 420px;
+    overflow-y: auto;
+  }
+
+  .letter-item {
+    padding: 8px 0;
+    border-radius: 12px;
+  }
+
+  .letter-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 4px;
+    padding: 0 4px;
+  }
+
+  .letter-name {
+    font-weight: 600;
+    font-size: 13px;
+    color: #0f172a;
+  }
+
+  .letter-tag {
+    font-size: 11px;
+    color: #2563eb;
+    margin-left: 6px;
+  }
+
+  .letter-time {
+    font-size: 11px;
+    color: #6b7280;
+  }
+
+  .letter-bubble {
+    position: relative;
+    display: inline-block;
+    max-width: 100%;
+    background: #f3f4ff;
+    border-radius: 20px;
+    padding: 10px 12px;
+    border: 1px solid #dbeafe;
+    margin-top: 8px;
+    margin-bottom: 8px;
+  }
+
+  .letter-bubble::after {
+    content: "";
+    position: absolute;
+    left: 18px;
+    bottom: -7px;
+    width: 22px;
+    height: 12px;
+    background: #f3f4ff;
+    border-radius: 999px;
+  }
+
+  .letter-message {
+    font-size: 13px;
+    color: #111827;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    background: #ffffff;
+    padding: 8px 10px;
+    border-radius: 12px;
+  }
+
+  .letter-image {
+    margin-top: 8px;
+    border-radius: 12px;
+    max-width: 100%;
+    max-height: 260px;
+    object-fit: cover;
+    border: 1px solid #dbeafe;
+    background: #ffffff;
+  }
+
+  /* 답글 */
+
+  .reply-list {
+    margin-top: 4px;
+    margin-left: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .reply-item {
+    display: flex;
+    justify-content: flex-start;
+  }
+
+  .reply-bubble {
+    max-width: 100%;
+    background: #e5f0ff;
+    border-radius: 16px;
+    padding: 8px 10px;
+    border: 1px solid #dbeafe;
+    font-size: 12px;
+  }
+
+  .reply-meta {
+    font-size: 11px;
+    color: #6b7280;
+    margin-bottom: 2px;
+  }
+
+  .reply-message {
+    font-size: 12px;
+    color: #111827;
+    white-space: pre-wrap;
+    background: #ffffff;
+    padding: 4px 6px;
+    border-radius: 8px;
+  }
+
+  .reply-toggle {
+    margin-top: 4px;
+    font-size: 11px;
+    color: #2563eb;
+    background: transparent;
+    border: none;
+    padding: 0 4px;
+    cursor: pointer;
+  }
+
+  .reply-form {
+    margin-top: 6px;
+    margin-left: 24px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px dashed #dbeafe;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 12px;
+    background: #f3f4ff;
+  }
+
+  .reply-form-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .reply-form input[type="text"],
+  .reply-form textarea {
+    width: 100%;
+    padding: 6px 8px;
+    border-radius: 8px;
+    border: 1px solid #cbd5f5;
+    background: #ffffff;
+    color: #0f172a;
+    font-size: 12px;
+    resize: vertical;
+  }
+
+  .hidden {
+    display: none !important;
+  }
+
+  /* 청운우체통 제목에 우체통 아이콘 */
+  #view-cheongun .letter-title::before {
+    content: "📮";
+    font-size: 20px;
+  }
+  </style>
+
+</head>
+<body>
+  <header>
+    <div>
+      <div class="logo">학교 이벤트존</div>
+      <div class="subtitle">실시간 투표 · 게시판 · 청운우체통</div>
+    </div>
+    <nav class="nav-tabs">
+      <button class="nav-btn active" data-view="vote">투표존</button>
+      <button class="nav-btn" data-view="letter">게시판</button>
+      <button class="nav-btn" data-view="cheongun">청운우체통</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- VIEW 1: 투표존 -->
+    <div id="view-vote" class="vote-layout">
+      <!-- 좌측: 질문 목록 -->
+      <aside class="panel">
+        <div class="panel-title">투표 질문 목록</div>
+        <div class="question-list" id="question-list"></div>
+      </aside>
+
+      <!-- 중앙: 현재 질문 카드 -->
+      <section class="card">
+        <div>
+          <div class="card-tag" id="card-tag">Q1</div>
+          <div class="card-title" id="card-title">질문 제목</div>
+          <div class="card-desc" id="card-desc">질문 설명이 여기에 표시됩니다.</div>
+          <div class="card-meta">총 투표 수: <span id="total-votes">0</span>표</div>
+        </div>
+
+        <div>
+          <div style="font-size: 12px; color:#9ca3af; margin-bottom:4px;">
+            * 이름 혹은 닉네임을 입력하세요. (학번+이름 추천 예: 10506_정연)
+          </div>
+          <form class="vote-form" id="vote-form">
+            <input type="text" id="vote-name" placeholder="투표할 사람 이름 또는 닉네임">
+            <button type="submit">이 질문에 투표하기</button>
+          </form>
+          <!-- 이전 질문 버튼만 -->
+          <button id="prev-question-btn" class="next-question-btn">이전 질문</button>
+        </div>
+        <button id="next-question-btn" class="next-question-btn">다음 질문</button>
+      </section>
+
+
+      <!-- 우측: 랭킹 + 관리자 -->
+      <aside class="panel">
+        <div class="ranking-header">
+          <div class="panel-title">실시간 TOP 5</div>
+        </div>
+        <div class="ranking-sub" id="ranking-sub">질문을 선택하면 랭킹이 표시됩니다.</div>
+        <div class="ranking-list" id="ranking-list"></div>
+        <div class="empty-text" id="ranking-empty">아직 투표가 없어요. 첫 번째 투표를 해 보세요!</div>
+
+        <div class="admin-toggle" id="admin-toggle">관리자 모드 열기</div>
+        <div class="admin-section" id="admin-section">
+          <div class="admin-row">
+            <span>관리자 비밀번호:</span>
+            <input type="password" id="admin-password" placeholder="비밀번호 입력">
+            <button class="admin-btn" id="admin-login-btn">확인</button>
+          </div>
+          <div id="admin-body" style="display:none;">
+            <div style="margin-top:4px; color:#9ca3af;">※ 간단 관리자 기능 (현재 질문 기준)</div>
+            <div class="admin-row">
+              <span>숨길 이름:</span>
+              <input type="text" id="hide-name-input" placeholder="숨길 이름/닉네임">
+              <button class="admin-btn" id="hide-name-btn">숨기기</button>
+            </div>
+            <div class="admin-row">
+              <button class="admin-btn" id="reset-votes-btn">현재 질문 투표 초기화</button>
+              <button class="admin-btn danger" id="clear-question-btn">현재 질문 전체 삭제(질문+투표)</button>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <!-- VIEW 2: 게시판 -->
+    <div id="view-letter" class="letter-layout hidden">
+      <section class="panel">
+        <div class="letter-title">게시판</div>
+        <div class="letter-sub">
+          하고 싶은 말, 익명으로 남기고 싶은 이야기, 운영진/관리자에게 전하고 싶은 메시지를 자유롭게 올려 주세요. (이미지 1장 첨부 가능)
+        </div>
+        <form class="letter-form" id="letter-form">
+          <div class="letter-form-row">
+            <label style="display:flex;align-items:center;gap:4px;font-size:12px;">
+              <input type="checkbox" id="letter-anon" checked>
+              익명으로 올리기
+            </label>
+          </div>
+          <div class="letter-form-row">
+            <input type="text" id="letter-name" placeholder="실명 또는 별명 (익명이 아니면 필수)" disabled>
+          </div>
+          <textarea id="letter-message" placeholder="게시글 내용을 자유롭게 적어 주세요. (기본적인 예의는 지키기!)"></textarea>
+          <div class="letter-form-row">
+            <span style="font-size:12px; color:#9ca3af;">이미지 첨부 (선택):</span>
+            <input type="file" id="letter-image" accept="image/*">
+          </div>
+          <button type="submit">게시글 올리기</button>
+        </form>
+      </section>
+
+      <section class="panel">
+        <div class="panel-title">게시글 목록</div>
+        <div class="letter-sub">최신 순으로 최대 50개까지 보여집니다. (답글 가능)</div>
+        <div id="letter-list" class="letter-list"></div>
+        <div class="empty-text" id="letter-empty">아직 올라온 글이 없어요. 첫 번째 글의 주인공이 되어 보세요!</div>
+      </section>
+    </div>
+
+    <!-- VIEW 3: 청운우체통 -->
+    <div id="view-cheongun" class="letter-layout hidden">
+      <section class="panel">
+        <div class="letter-title">청운우체통</div>
+        <div class="letter-sub" id="cheongun-info-text">
+          청운우체통은 <b>평소 용기 내서 말하지 못했던 마음을 딱 한 사람에게만</b> 조용히 전하는 편지함입니다.<br>
+          이 페이지에서는 한 사람당 한 번만, 가장 전하고 싶었던 사람을 떠올려 편지를 쓸 수 있습니다.<br>
+          여기에서 작성한 편지는 <b>관리자인 내가 먼저 받은 뒤, 나중에 오프라인에서 실제로 인쇄하거나 직접 전달할 예정</b>입니다.<br>
+          ※ 같은 기기에서는 청운우체통을 한 번 보낸 뒤에는 다시 보낼 수 없습니다.
+        </div>
+        <form class="letter-form" id="cheongun-form">
+          <div class="letter-form-row">
+            <input type="text" id="cheongun-from" placeholder="보내는 사람 (선택: 학번+이름 또는 닉네임)">
+          </div>
+          <div class="letter-form-row">
+            <input type="text" id="cheongun-to" placeholder="받는 사람 (필수: 학번+이름 또는 닉네임)">
+          </div>
+          <textarea id="cheongun-message" placeholder="평소 하고 싶었지만 전하지 못했던 말을 진심을 담아 적어 주세요. (작성 후 수정/삭제 불가)"></textarea>
+          <button type="submit" id="cheongun-submit-btn">청운우체통에 넣기</button>
+        </form>
+      </section>
+    </div>
+  </main>
+
+  <!-- Firebase SDK (Realtime DB만 사용) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+  <script>
+    // ==============================
+    // 1. Firebase 초기화
+    // ==============================
+    const firebaseConfig = {
+      apiKey: "AIzaSyCY0nrWOtl5mj9fSckXY1ljcfMIEzIYH5s",
+      authDomain: "sion-a8988.firebaseapp.com",
+      projectId: "sion-a8988",
+      storageBucket: "sion-a8988.firebasestorage.app",
+      messagingSenderId: "551701763906",
+      appId: "1:551701763906:web:bf26ac9dfc7be1f5f21adb",
+      measurementId: "G-N1E8SZYMCN",
+      databaseURL: "https://sion-a8988-default-rtdb.firebaseio.com"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // ==============================
+    // 공통: 뷰 전환 (투표 / 게시판 / 청운우체통)
+    // ==============================
+    const navButtons = document.querySelectorAll('.nav-btn');
+    const viewVote = document.getElementById('view-vote');
+    const viewLetter = document.getElementById('view-letter');
+    const viewCheongun = document.getElementById('view-cheongun');
+
+    function showView(view) {
+      viewVote.classList.add('hidden');
+      viewLetter.classList.add('hidden');
+      viewCheongun.classList.add('hidden');
+
+      if (view === 'vote') viewVote.classList.remove('hidden');
+      else if (view === 'letter') viewLetter.classList.remove('hidden');
+      else if (view === 'cheongun') viewCheongun.classList.remove('hidden');
+    }
+
+    navButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const view = btn.dataset.view;
+        navButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        showView(view);
+      });
+    });
+
+    // 기본 뷰
+    showView('vote');
+
+    // ==============================
+    // 🔥 기기 고유 ID 생성 (기기 1회 제한용)
+    // ==============================
+    if (!localStorage.getItem("device_id")) {
+      const rand = (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2));
+      localStorage.setItem("device_id", "dev_" + rand);
+    }
+    const deviceId = localStorage.getItem("device_id");
+
+    // ==============================
+    // 2. 기본 질문 데이터 (최초 1회용)
+    // ==============================
+    const defaultQuestions = [
+      {
+        id: 'funniest',
+        tag: 'Q1',
+        title: '우리 학교에서 가장 웃긴 사람은?',
+        desc: '말할 때마다 주변을 빵 터뜨리는 입담 최강자에게 한 표를 주세요!'
+      },
+      {
+        id: 'kindest',
+        tag: 'Q2',
+        title: '우리 학교에서 가장 친절한 사람은?',
+        desc: '항상 먼저 도와주고 배려해 주는 천사 같은 친구는 누구인가요?'
+      },
+      {
+        id: 'presentation',
+        tag: 'Q3',
+        title: '발표/프레젠테이션을 제일 잘하는 사람은?',
+        desc: '수업·수행평가에서 프레젠테이션 장인이라고 느껴지는 친구에게 투표해 보세요.'
+      },
+      {
+        id: 'fashion',
+        tag: 'Q4',
+        title: '패션 감각이 가장 좋은 사람은?',
+        desc: '교복이든 사복이든 스타일 찢는 패션 리더에게 한 표!'
+      },
+      {
+        id: 'hardworking',
+        tag: 'Q5',
+        title: '가장 성실하게 노력하는 사람은?',
+        desc: '묵묵히 자기 자리에서 최선을 다하는 노력왕을 추천해 주세요.'
+      },
+      {
+        id: 'funniest2',
+        tag: 'Q6',
+        title: '우리 학교에서 가장 웃긴 사람은? (2)',
+        desc: '다른 반까지 소문난 레전드 개그캐에게 한 표!'
+      },
+      {
+        id: 'kindest2',
+        tag: 'Q7',
+        title: '우리 학교에서 가장 다정한 사람은?',
+        desc: '말투부터 행동까지 다정다감한 힐링캐는 누구인가요?'
+      },
+      {
+        id: 'presentation2',
+        tag: 'Q8',
+        title: '발표할 때 가장 믿음직한 사람은?',
+        desc: '조 발표 맡기면 자동으로 든든해지는 그 친구!'
+      },
+      {
+        id: 'fashion2',
+        tag: 'Q9',
+        title: '가장 꾸안꾸 스타일이 찰떡인 사람은?',
+        desc: '대충 입은 것 같은데 왠지 멋있는 친구에게 투표해 보세요.'
+      },
+      {
+        id: 'hardworking2',
+        tag: 'Q10',
+        title: '늘 조용히 뒷자리에서 노력하는 사람은?',
+        desc: '티는 안 나지만 항상 준비되어 있는 숨은 노력왕!'
+      }
+    ];
+
+    // DB 구조:
+    // /questions/{id}
+    // /votes/{questionId}/{name}
+    // /hiddenNames/{questionId}/{name}
+    // /deviceVotes/{questionId}/{deviceId}
+    // /letters/{letterId}
+    // /letterReplies/{letterId}/{replyId}
+    // /cheongunLetters/{letterId}
+    // /cheongunDevice/{deviceId} = letterId
+
+    let questions = [];
+    let currentQuestionId = null;
+    let voteData = {};
+    let hiddenNames = {};
+    let currentVotesRef = null;
+    let currentHiddenRef = null;
+
+    // 한 번에 보여줄 질문 수
+    const PAGE_SIZE = 4;
+
+    // 현재 몇 번째 세트인지
+    let questionPage = 0;
+
+    // 이 브라우저가 한 번이라도 투표한 질문 ID 목록
+    let votedQuestions = new Set(
+      JSON.parse(localStorage.getItem('votedQuestions') || '[]')
+    );
+
+    function saveVotedQuestions() {
+      localStorage.setItem('votedQuestions', JSON.stringify(Array.from(votedQuestions)));
+    }
+
+    function markQuestionVoted(qid) {
+      if (!qid) return;
+      votedQuestions.add(qid);
+      saveVotedQuestions();
+    }
+
+    // 특정 페이지(세트)의 질문 목록 가져오기
+    function getPageQuestions(pageIndex) {
+      const start = pageIndex * PAGE_SIZE;
+      return questions.slice(start, start + PAGE_SIZE);
+    }
+
+    // 처음 로딩할 때, 아직 안 끝낸 세트 찾기
+    function findInitialPage() {
+      const totalPages = Math.ceil(questions.length / PAGE_SIZE);
+      if (totalPages === 0) {
+        questionPage = 0;
+        return;
+      }
+
+      let chosen = 0;
+      for (let p = 0; p < totalPages; p++) {
+        const slice = getPageQuestions(p);
+        const hasUnvoted = slice.some(q => !votedQuestions.has(q.id));
+        if (hasUnvoted) {
+          chosen = p;
+          break;
+        } else {
+          chosen = totalPages - 1;
+        }
+      }
+      questionPage = chosen;
+    }
+
+    // ==============================
+    // 3. 질문 로딩 & 초기 세팅 (매번 defaultQuestions로 초기화 버전)
+    // ==============================
+    function initQuestionsFromFirebase() {
+      const qRef = db.ref('questions');
+
+      // localStorage에 저장된 투표 완료 정보 리셋 (테스트용)
+      votedQuestions = new Set();
+      saveVotedQuestions();
+
+      const updates = {};
+      defaultQuestions.forEach(q => {
+        updates[q.id] = {
+          tag: q.tag,
+          title: q.title,
+          desc: q.desc,
+          active: true
+        };
+      });
+
+      qRef
+        .set(updates)
+        .then(() => {
+          questions = defaultQuestions.map(q => ({ ...q, active: true }));
+
+          if (questions.length === 0) {
+            alert('활성화된 질문이 없습니다. 관리자에서 질문을 추가해 주세요.');
+            return;
+          }
+
+          questions.sort((a, b) => (a.tag || '').localeCompare(b.tag || ''));
+
+          findInitialPage();
+
+          const pageQuestions = getPageQuestions(questionPage);
+          if (pageQuestions.length === 0) {
+            alert('표시할 질문이 없습니다.');
+            return;
+          }
+
+          currentQuestionId = pageQuestions[0].id;
+          renderQuestionList();
+          switchQuestion(currentQuestionId);
+        })
+        .catch(err => {
+          console.error(err);
+          alert('질문 데이터를 불러오는 중 오류가 발생했습니다.');
+        });
+    }
+
+    function renderQuestionList() {
+      questionListEl.innerHTML = '';
+
+      const pageQuestions = getPageQuestions(questionPage);
+
+      pageQuestions.forEach(q => {
+        const div = document.createElement('div');
+        const isActive = q.id === currentQuestionId;
+        const isVoted = votedQuestions.has(q.id);
+
+        div.className = 'question-item' + (isActive ? ' active' : '');
+        div.dataset.id = q.id;
+        div.innerHTML = `
+          <div>${q.title}</div>
+          <small>${q.tag}${isVoted ? ' · ✅ 투표완료' : ''}</small>
+        `;
+        div.addEventListener('click', () => {
+          switchQuestion(q.id);
+        });
+        questionListEl.appendChild(div);
+      });
+
+      const totalPages = Math.ceil(questions.length / PAGE_SIZE);
+      if (totalPages > 1) {
+        const info = document.createElement('div');
+        info.style.marginTop = '6px';
+        info.style.fontSize = '11px';
+        info.style.color = '#6b7280';
+        info.textContent = `현재 세트 ${questionPage + 1} / ${totalPages}`;
+        questionListEl.appendChild(info);
+      }
+    }
+
+    // ==============================
+    // 이전 / 다음 질문 이동
+    // ==============================
+    function advanceToPrevQuestion() {
+      const slice = getPageQuestions(questionPage);
+      if (slice.length === 0) return;
+
+      const idx = slice.findIndex(q => q.id === currentQuestionId);
+      const totalPages = Math.ceil(questions.length / PAGE_SIZE);
+
+      if (idx === -1) {
+        switchQuestion(slice[0].id);
+        return;
+      }
+
+      // 1) 같은 세트 안에서 이전 질문이 있으면
+      if (idx > 0) {
+        switchQuestion(slice[idx - 1].id);
+        return;
+      }
+
+      // 2) 이 세트의 첫 번째 질문인데, 이전 세트가 있으면
+      if (idx === 0 && questionPage > 0) {
+        questionPage--;
+        renderQuestionList();
+        const prevSlice = getPageQuestions(questionPage);
+        if (prevSlice.length > 0) {
+          switchQuestion(prevSlice[prevSlice.length - 1].id);
+        }
+        return;
+      }
+
+      // 3) 완전 첫 질문
+      alert('첫 번째 질문입니다!');
+    }
+
+    function advanceToNextQuestion() {
+      const slice = getPageQuestions(questionPage);
+      if (slice.length === 0) return;
+
+      const idx = slice.findIndex(q => q.id === currentQuestionId);
+      const totalPages = Math.ceil(questions.length / PAGE_SIZE);
+
+      if (idx === -1) {
+        switchQuestion(slice[0].id);
+        return;
+      }
+
+      // 1) 같은 세트 안에서 다음 질문이 있으면
+      if (idx < slice.length - 1) {
+        switchQuestion(slice[idx + 1].id);
+        return;
+      }
+
+      // 2) 이 세트의 마지막 질문이고, 다음 세트가 있으면 → 다음 세트 첫 질문
+      if (questionPage < totalPages - 1) {
+        questionPage++;
+        renderQuestionList();
+        const nextSlice = getPageQuestions(questionPage);
+        if (nextSlice.length > 0) {
+          switchQuestion(nextSlice[0].id);
+        }
+        return;
+      }
+
+      // 3) 완전 마지막 질문
+      alert("마지막 질문입니다!");
+    }
+
+    // 투표 DOM
+    const questionListEl = document.getElementById('question-list');
+    const cardTagEl = document.getElementById('card-tag');
+    const cardTitleEl = document.getElementById('card-title');
+    const cardDescEl = document.getElementById('card-desc');
+    const totalVotesEl = document.getElementById('total-votes');
+    const voteFormEl = document.getElementById('vote-form');
+    const voteNameEl = document.getElementById('vote-name');
+    const rankingListEl = document.getElementById('ranking-list');
+    const rankingSubEl = document.getElementById('ranking-sub');
+    const rankingEmptyEl = document.getElementById('ranking-empty');
+
+    const adminToggleEl = document.getElementById('admin-toggle');
+    const adminSectionEl = document.getElementById('admin-section');
+    const adminPasswordEl = document.getElementById('admin-password');
+    const adminLoginBtnEl = document.getElementById('admin-login-btn');
+    const adminBodyEl = document.getElementById('admin-body');
+    const hideNameInputEl = document.getElementById('hide-name-input');
+    const hideNameBtnEl = document.getElementById('hide-name-btn');
+    const resetVotesBtnEl = document.getElementById('reset-votes-btn');
+    const clearQuestionBtnEl = document.getElementById('clear-question-btn');
+
+    const ADMIN_PASSWORD = "admin1234";
+
+    // 이전 버튼
+    const prevBtn = document.getElementById('prev-question-btn');
+    prevBtn.addEventListener('click', () => {
+      advanceToPrevQuestion();
+    });
+    const nextBtn = document.getElementById('next-question-btn');
+nextBtn.addEventListener('click', () => {
+  advanceToNextQuestion();
+});
+
+    // ==============================
+    // 4. 질문 전환 + 리스너 설정
+    // ==============================
+    function detachCurrentListeners() {
+      if (currentVotesRef) currentVotesRef.off();
+      if (currentHiddenRef) currentHiddenRef.off();
+    }
+
+    function switchQuestion(qid) {
+      currentQuestionId = qid;
+      renderQuestionList();
+      const q = questions.find(item => item.id === qid);
+      if (!q) return;
+
+      cardTagEl.textContent = q.tag;
+      cardTitleEl.textContent = q.title;
+      cardDescEl.textContent = q.desc;
+      rankingSubEl.textContent = `${q.tag} ${q.title}`;
+
+      detachCurrentListeners();
+
+      currentVotesRef = db.ref('votes/' + qid);
+      currentHiddenRef = db.ref('hiddenNames/' + qid);
+
+      currentVotesRef.on('value', snapshot => {
+        voteData[qid] = snapshot.val() || {};
+        renderVotesAndRanking();
+      });
+
+      currentHiddenRef.on('value', snapshot => {
+        hiddenNames[qid] = snapshot.val() || {};
+        renderVotesAndRanking();
+      });
+    }
+
+    function renderVotesAndRanking() {
+      if (!currentQuestionId) return;
+
+      const votes = voteData[currentQuestionId] || {};
+      const hidden = hiddenNames[currentQuestionId] || {};
+
+      const total = Object.values(votes).reduce((a, b) => a + b, 0);
+      totalVotesEl.textContent = total;
+
+      const entries = Object.entries(votes)
+        .filter(([name]) => !hidden[name]);
+
+      entries.sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+
+      rankingListEl.innerHTML = '';
+      if (entries.length === 0) {
+        rankingEmptyEl.style.display = 'block';
+        return;
+      }
+      rankingEmptyEl.style.display = 'none';
+
+      const top5 = entries.slice(0, 5);
+      top5.forEach((item, index) => {
+        const [name, count] = item;
+        const div = document.createElement('div');
+        div.className = 'rank-item';
+        div.innerHTML = `
+          <div class="rank-label">
+            <div class="rank-num">${index + 1}위</div>
+            <div class="rank-name">${name}</div>
+          </div>
+          <div class="rank-votes">${count}표</div>
+        `;
+        rankingListEl.appendChild(div);
+      });
+    }
+
+    // ==============================
+    // 5. 투표 처리 (중복 방지 포함 + 자동 다음 질문 이동)
+    // ==============================
+    voteFormEl.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const rawName = voteNameEl.value.trim();
+      if (!rawName) {
+        alert('투표할 사람의 이름 또는 닉네임을 입력해 주세요.');
+        return;
+      }
+      if (rawName.length > 20) {
+        alert('이름/닉네임은 20자 이하로 입력해 주세요.');
+        return;
+      }
+      if (!currentQuestionId) return;
+
+      const nameKey = rawName;
+
+      const deviceRef = db.ref('deviceVotes/' + currentQuestionId + '/' + deviceId);
+      deviceRef.once('value').then(deviceSnap => {
+        if (deviceSnap.exists()) {
+          alert('이 기기에서는 이미 이 질문에 투표했습니다!');
+          return;
+        }
+
+        const nameRef = db.ref('votes/' + currentQuestionId + '/' + nameKey);
+        nameRef.once('value').then(nameSnap => {
+          if (nameSnap.exists()) {
+            alert('이 이름으로는 이미 투표했습니다!');
+            return;
+          }
+
+          const updates = {};
+          updates['votes/' + currentQuestionId + '/' + nameKey] = 1;
+          updates['deviceVotes/' + currentQuestionId + '/' + deviceId] = true;
+
+          db.ref().update(updates).then(() => {
+            voteNameEl.value = '';
+
+            markQuestionVoted(currentQuestionId);
+            renderQuestionList();
+
+            // ✅ 투표 성공 후 자동으로 다음 질문으로 이동
+            advanceToNextQuestion();
+          }).catch(error => {
+            console.error(error);
+            alert('투표 저장 중 오류가 발생했습니다.');
+          });
+        });
+      });
+    });
+
+    // ==============================
+    // 6. 관리자 기능
+    // ==============================
+    adminToggleEl.addEventListener('click', () => {
+      if (adminSectionEl.style.display === 'flex') {
+        adminSectionEl.style.display = 'none';
+      } else {
+        adminSectionEl.style.display = 'flex';
+      }
+    });
+
+    adminLoginBtnEl.addEventListener('click', () => {
+      const pw = adminPasswordEl.value;
+      if (pw === ADMIN_PASSWORD) {
+        adminBodyEl.style.display = 'block';
+        alert('관리자 모드가 활성화되었습니다.');
+      } else {
+        alert('비밀번호가 올바르지 않습니다.');
+      }
+    });
+
+    resetVotesBtnEl.addEventListener('click', () => {
+      if (!currentQuestionId) return;
+      if (!confirm('현재 질문의 투표 기록(기기 기록 포함)을 모두 초기화할까요?')) return;
+
+      const updates = {};
+      updates['votes/' + currentQuestionId] = null;
+      updates['deviceVotes/' + currentQuestionId] = null;
+
+      db.ref().update(updates).then(() => {
+        alert('투표가 초기화되었습니다.');
+      });
+    });
+
+    hideNameBtnEl.addEventListener('click', () => {
+      if (!currentQuestionId) return;
+      const name = hideNameInputEl.value.trim();
+      if (!name) {
+        alert('숨길 이름/닉네임을 입력하세요.');
+        return;
+      }
+      db.ref('hiddenNames/' + currentQuestionId + '/' + name).set(true);
+      hideNameInputEl.value = '';
+    });
+
+    clearQuestionBtnEl.addEventListener('click', () => {
+      if (!currentQuestionId) return;
+      const q = questions.find(item => item.id === currentQuestionId);
+      if (!q) return;
+
+      if (!confirm(`"${q.title}" 질문과 해당 질문의 모든 투표를 삭제할까요?`)) return;
+
+      const updates = {};
+      updates['questions/' + currentQuestionId + '/active'] = false;
+      updates['votes/' + currentQuestionId] = null;
+      updates['hiddenNames/' + currentQuestionId] = null;
+      updates['deviceVotes/' + currentQuestionId] = null;
+
+      db.ref().update(updates).then(() => {
+        questions = questions.filter(item => item.id !== currentQuestionId);
+        if (questions.length === 0) {
+          currentQuestionId = null;
+          questionListEl.innerHTML = '';
+          rankingListEl.innerHTML = '';
+          rankingEmptyEl.style.display = 'block';
+          cardTagEl.textContent = '';
+          cardTitleEl.textContent = '질문 없음';
+          cardDescEl.textContent = '활성화된 질문이 없습니다. 관리자에서 질문을 추가해 주세요.';
+          totalVotesEl.textContent = '0';
+        } else {
+          currentQuestionId = questions[0].id;
+          switchQuestion(currentQuestionId);
+        }
+      });
+    });
+
+    // ==============================
+    // 7. 게시판 (게시글 + 답글 + 이미지 base64)
+    // ==============================
+    const letterAnonEl = document.getElementById('letter-anon');
+    const letterNameEl = document.getElementById('letter-name');
+    const letterMessageEl = document.getElementById('letter-message');
+    const letterImageEl = document.getElementById('letter-image');
+    const letterFormEl = document.getElementById('letter-form');
+    const letterListEl = document.getElementById('letter-list');
+    const letterEmptyEl = document.getElementById('letter-empty');
+
+    let letters = [];
+    let repliesData = {};
+
+    letterAnonEl.addEventListener('change', () => {
+      if (letterAnonEl.checked) {
+        letterNameEl.disabled = true;
+        letterNameEl.value = '';
+      } else {
+        letterNameEl.disabled = false;
+      }
+    });
+
+    function readFileAsDataURL(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => resolve(e.target.result);
+        reader.onerror = e => reject(e);
+        reader.readAsDataURL(file);
+      });
+    }
+
+    letterFormEl.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const isAnonymous = letterAnonEl.checked;
+      const nameInput = letterNameEl.value.trim();
+      const message = letterMessageEl.value.trim();
+      const file = letterImageEl.files[0];
+
+      if (!message) {
+        alert('게시글 내용을 입력해 주세요.');
+        return;
+      }
+      if (!isAnonymous && !nameInput) {
+        alert('익명이 아니라면 실명 또는 별명을 입력해 주세요.');
+        return;
+      }
+
+      const displayName = isAnonymous ? '익명' : nameInput;
+
+      try {
+        const newRef = db.ref('letters').push();
+
+        let imageData = null;
+        if (file) {
+          imageData = await readFileAsDataURL(file);
+        }
+
+        await newRef.set({
+          name: displayName,
+          isAnonymous: isAnonymous,
+          rawName: nameInput || null,
+          message: message,
+          imageData: imageData,
+          createdAt: firebase.database.ServerValue.TIMESTAMP
+        });
+
+        letterMessageEl.value = '';
+        letterImageEl.value = '';
+        if (!isAnonymous) letterNameEl.value = '';
+        alert('게시글이 등록되었습니다.');
+      } catch (err) {
+        console.error(err);
+        alert('게시글 등록 중 오류가 발생했습니다.');
+      }
+    });
+
+    const lettersRef = db.ref('letters').limitToLast(50);
+    const repliesRootRef = db.ref('letterReplies');
+
+    lettersRef.on('value', snapshot => {
+      const val = snapshot.val();
+      if (!val) {
+        letters = [];
+        renderLetters();
+        return;
+      }
+      letters = Object.entries(val).map(([id, data]) => ({
+        id,
+        ...data
+      }));
+      letters.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      renderLetters();
+    });
+
+    repliesRootRef.on('value', snapshot => {
+      repliesData = snapshot.val() || {};
+      renderLetters();
+    });
+
+    function renderLetters() {
+      letterListEl.innerHTML = '';
+
+      if (!letters || letters.length === 0) {
+        letterEmptyEl.style.display = 'block';
+        return;
+      }
+      letterEmptyEl.style.display = 'none';
+
+      letters.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'letter-item';
+
+        const created = item.createdAt ? new Date(item.createdAt) : null;
+        const timeStr = created ? created.toLocaleString('ko-KR') : '';
+
+        const letterId = item.id;
+        const letterReplies = (repliesData && repliesData[letterId]) || {};
+
+        const replyArr = Object.entries(letterReplies).map(([rid, r]) => ({
+          id: rid,
+          ...r
+        })).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+
+        let repliesHtml = '';
+        replyArr.forEach(r => {
+          const rCreated = r.createdAt ? new Date(r.createdAt) : null;
+          const rTimeStr = rCreated ? rCreated.toLocaleString('ko-KR') : '';
+          const rName = r.name || '익명';
+          repliesHtml += `
+            <div class="reply-item">
+              <div class="reply-bubble">
+                <div class="reply-meta">${escapeHtml(rName)} · ${rTimeStr}</div>
+                <div class="reply-message">${escapeHtml(r.message || '')}</div>
+              </div>
+            </div>
+          `;
+        });
+
+        const imagePart = item.imageData
+          ? `<img class="letter-image" src="${item.imageData}" alt="첨부 이미지">`
+          : '';
+
+        div.innerHTML = `
+          <div class="letter-header">
+            <div>
+              <span class="letter-name">${escapeHtml(item.name || '익명')}</span>
+              ${item.isAnonymous ? '<span class="letter-tag">익명</span>' : '<span class="letter-tag">실명/닉네임</span>'}
+            </div>
+            <div class="letter-time">${timeStr}</div>
+          </div>
+          <div class="letter-bubble">
+            <div class="letter-message">${escapeHtml(item.message || '')}</div>
+            ${imagePart}
+          </div>
+          <div class="reply-list" data-letter-id="${letterId}">
+            ${repliesHtml}
+          </div>
+          <button class="reply-toggle" data-letter-id="${letterId}">답글 달기</button>
+          <form class="reply-form hidden" data-letter-id="${letterId}">
+            <div class="reply-form-row">
+              <label style="display:flex;align-items:center;gap:4px;">
+                <input type="checkbox" class="reply-anon" checked>
+                익명
+              </label>
+            </div>
+            <div class="reply-form-row">
+              <input type="text" class="reply-name" placeholder="실명/별명 (익명이 아니면 필수)" disabled>
+            </div>
+            <textarea class="reply-message-input" placeholder="답글 내용을 입력하세요."></textarea>
+            <button type="submit">답글 등록</button>
+          </form>
+        `;
+
+        letterListEl.appendChild(div);
+
+        const replyToggleBtn = div.querySelector('.reply-toggle');
+        const replyFormEl = div.querySelector('.reply-form');
+        const replyAnonEl = replyFormEl.querySelector('.reply-anon');
+        const replyNameEl = replyFormEl.querySelector('.reply-name');
+        const replyMsgEl = replyFormEl.querySelector('.reply-message-input');
+
+        replyToggleBtn.addEventListener('click', () => {
+          replyFormEl.classList.toggle('hidden');
+        });
+
+        replyAnonEl.addEventListener('change', () => {
+          if (replyAnonEl.checked) {
+            replyNameEl.disabled = true;
+            replyNameEl.value = '';
+          } else {
+            replyNameEl.disabled = false;
+          }
+        });
+
+        replyFormEl.addEventListener('submit', (e) => {
+          e.preventDefault();
+          const isAnon = replyAnonEl.checked;
+          const nameVal = replyNameEl.value.trim();
+          const msgVal = replyMsgEl.value.trim();
+          if (!msgVal) {
+            alert('답글 내용을 입력해 주세요.');
+            return;
+          }
+          if (!isAnon && !nameVal) {
+            alert('익명이 아니라면 이름 또는 별명을 입력해 주세요.');
+            return;
+          }
+          const displayName = isAnon ? '익명' : nameVal;
+          const ref = db.ref('letterReplies/' + letterId).push();
+          ref.set({
+            name: displayName,
+            isAnonymous: isAnon,
+            rawName: nameVal || null,
+            message: msgVal,
+            createdAt: firebase.database.ServerValue.TIMESTAMP
+          }).then(() => {
+            replyMsgEl.value = '';
+            if (!isAnon) replyNameEl.value = '';
+          }).catch(err => {
+            console.error(err);
+            alert('답글 저장 중 오류가 발생했습니다.');
+          });
+        });
+      });
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    }
+
+    // ==============================
+    // 8. 청운우체통 (한 기기 1회 제한)
+    // ==============================
+    const cheongunInfoTextEl = document.getElementById('cheongun-info-text');
+    const cheongunFormEl = document.getElementById('cheongun-form');
+    const cheongunFromEl = document.getElementById('cheongun-from');
+    const cheongunToEl = document.getElementById('cheongun-to');
+    const cheongunMessageEl = document.getElementById('cheongun-message');
+    const cheongunSubmitBtnEl = document.getElementById('cheongun-submit-btn');
+
+    function setCheongunDisabled(disabled) {
+      cheongunFromEl.disabled = disabled;
+      cheongunToEl.disabled = disabled;
+      cheongunMessageEl.disabled = disabled;
+      cheongunSubmitBtnEl.disabled = disabled;
+    }
+
+    function initCheongun() {
+      const ref = db.ref('cheongunDevice/' + deviceId);
+      ref.once('value').then(snapshot => {
+        if (snapshot.exists()) {
+          setCheongunDisabled(true);
+          cheongunInfoTextEl.innerHTML =
+            '청운우체통은 <b>평소 전하지 못했던 마음을 딱 한 사람에게만</b> 전하는 편지함입니다.<br>' +
+            '이 기기에서는 이미 한 번 편지를 보냈기 때문에, 더 이상 새로운 편지를 보낼 수 없습니다.<br>' +
+            '<b>작성된 편지는 관리자가 받아서, 나중에 실제로 편지로 전달할 예정입니다.</b>';
+        }
+      });
+    }
+
+    cheongunFormEl.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const fromName = cheongunFromEl.value.trim();
+      const toName = cheongunToEl.value.trim();
+      const message = cheongunMessageEl.value.trim();
+
+      if (!toName) {
+        alert('받는 사람을 입력해 주세요. (학번+이름 또는 닉네임)');
+        return;
+      }
+      if (!message) {
+        alert('편지 내용을 입력해 주세요.');
+        return;
+      }
+
+      const deviceRef = db.ref('cheongunDevice/' + deviceId);
+      deviceRef.once('value').then(snapshot => {
+        if (snapshot.exists()) {
+          alert('이 기기에서는 이미 청운우체통을 한 번 보냈습니다.');
+          setCheongunDisabled(true);
+          return;
+        }
+
+        const newRef = db.ref('cheongunLetters').push();
+        const letterId = newRef.key;
+
+        const payload = {
+          fromName: fromName || null,
+          toName: toName,
+          message: message,
+          deviceId: deviceId,
+          createdAt: firebase.database.ServerValue.TIMESTAMP
+        };
+
+        const updates = {};
+        updates['cheongunLetters/' + letterId] = payload;
+        updates['cheongunDevice/' + deviceId] = letterId;
+
+        db.ref().update(updates).then(() => {
+          alert('청운우체통에 편지가 접수되었습니다. 나중에 오프라인에서 실제로 전달될 예정입니다.');
+          setCheongunDisabled(true);
+          cheongunMessageEl.value = '';
+          cheongunFromEl.value = '';
+          cheongunToEl.value = '';
+          cheongunInfoTextEl.innerHTML =
+            '청운우체통은 <b>평소 용기 내서 말하지 못했던 마음을 딱 한 사람에게만</b> 전하는 편지함입니다!<br>' +
+            '이미 이 기기에서 한 번 편지를 보냈습니다. 두 번째 편지는 쓸 수 없어요.<br>' +
+            '<b>작성된 편지는 관리자가 받아서, 나중에 실제로 전달해드릴 예정입니다.</b>';
+        }).catch(err => {
+          console.error(err);
+          alert('편지를 저장하는 중 오류가 발생했습니다.');
+        });
+      });
+    });
+
+    // ==============================
+    // 9. 시작
+    // ==============================
+    initQuestionsFromFirebase();
+    initCheongun();
+  </script>
+</body>
+</html>
+
